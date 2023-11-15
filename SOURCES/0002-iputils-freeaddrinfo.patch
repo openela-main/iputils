@@ -1,0 +1,14 @@
+--- a/ping.c	2018-06-29 20:00:46.000000000 +0200
++++ b/ping.c	2019-07-10 09:50:06.653039073 +0200
+@@ -589,8 +589,10 @@ int ping4_run(int argc, char **argv, str
+ 				strncpy(hnamebuf, ai->ai_canonname, sizeof hnamebuf - 1);
+ 			hostname = hnamebuf;
+ 
+-			if (result)
++			if (result) {
+ 				freeaddrinfo(result);
++				ai = NULL;
++			}
+ 		}
+ 		if (argc > 1)
+ 			route[nroute++] = whereto.sin_addr.s_addr;
