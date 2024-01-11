@@ -1,0 +1,38 @@
+From e0baf20067a75f093d690bd51a6db3f5afabca77 Mon Sep 17 00:00:00 2001
+From: Petr Vorel <pvorel@suse.cz>
+Date: Tue, 17 Jul 2018 17:56:10 +0200
+Subject: [PATCH] tracepath: Fix copying input IPv6 address
+
+Commit e669c86 broke copying input IPv6 address.
+tracepath recover from it, but it's slower.
+
+Previously was address too short:
+
+    strace ./tracepath -6 fe80::8895:e2af:e96e:fd8f
+    sendto(3, "\1\0\0\0\0\0\0\0\307\36N[\0\0\0\0w_\f\0\0\0\0\0\0\0\0\0\0\0\0\0"..., 127952, 0, {sa_family=AF_INET6, sin6_port=htons(44444), inet_pton(AF_INET6, "fe80::", &sin6_addr), sin6_flowinfo=htonl(0), sin6_scope_id=0}, 28) = -1 EMSGSIZE (Message too long)
+
+After fix is correct:
+
+    sendto(3, "\1\0\0\0\0\0\0\0\300\36N[\0\0\0\0'B\3\0\0\0\0\0\0\0\0\0\0\0\0\0"..., 127952, 0, {sa_family=AF_INET6, sin6_port=htons(44444), inet_pton(AF_INET6, "fe80::8895:e2af:e96e:fd8f", &sin6_addr), sin6_flowinfo=htonl(0), sin6_scope_id=0}, 28) = -1 EMSGSIZE (Message too long)
+
+Bug found by LTP test.
+
+Fixes: e669c86 tracepath: fix heap-buffer-overflow [asan]
+Fixes: #137
+---
+ tracepath.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/tracepath.c b/tracepath.c
+index 53bda16f..539a7a11 100644
+--- a/tracepath.c
++++ b/tracepath.c
+@@ -475,7 +475,7 @@ int main(int argc, char **argv)
+ 		fd = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
+ 		if (fd < 0)
+ 			continue;
+-		memcpy(&target, ai->ai_addr, sizeof(*ai->ai_addr));
++		memcpy(&target, ai->ai_addr, ai->ai_addrlen);
+ 		targetlen = ai->ai_addrlen;
+ 		break;
+ 	}

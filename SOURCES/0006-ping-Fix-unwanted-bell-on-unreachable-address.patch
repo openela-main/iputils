@@ -1,0 +1,113 @@
+From dc4f836759887a6edf141aa55adbdb9bc63f5e69 Mon Sep 17 00:00:00 2001
+From: Jan Macku <jamacku@redhat.com>
+Date: Tue, 22 Mar 2022 12:59:21 +0100
+Subject: [PATCH] ping: Fix unwanted bell on unreachable address
+
+Commit 4471ac629cf2603f4b8b45e042e072c992ce25a5 caused regression for IPv6
+that ping -a IP6_ADDR beeps also on wrong address (i.e.  when "Address
+unreachable"):
+
+    $ ping -a -c1 fd00:1:1:1::15
+    PING fd00:1:1:1::15(fd00:1:1:1::15) 56 data bytes
+    From fd00:1:1:1::2 icmp_seq=1 Destination unreachable: Address unreachable
+
+    --- fd00:1:1:1::15 ping statistics ---
+    1 packets transmitted, 0 received, +1 errors, 100% packet loss, time 0m
+
+It should only bell when ping returns correctly.
+
+Another (fixed) regression was that ping after exit printed error "pipe N",
+where N is number of counts. Error was result of code from ping_common.c:
+printf("%spipe %d", comma, pipesize);
+
+4471ac6 was wrong that code for sock->working_recverr == 1 should stay,
+sock->working_recverr should be removed.
+
+Thus changes:
+* ping.c: put back "stronger filter" for raw socket but (unlike before
+  4471ac6) exit with 2 if setsockopt(ICMP_FILTER) fails
+* ping6_common.c: put back setsockopt(IPV6_RECVERR), but (unlike before
+  4471ac6) exit with 2 if it fails
+* ping6_common.c: remove ICMP6_FILTER_SETPASS calls. These caused error "pipe N".
+* ping6_common.c: return 0 after acknowledge() in ping6_parse_reply
+
+Fixes: 4471ac6 ("ping: Remove workaround for bug in IP_RECVERR on raw sockets")
+Fixes: https://github.com/iputils/iputils/issues/182
+Reported-by: Luiz Angelo Daros de Luca <luizluca@tre-sc.jus.br>
+Signed-off-by: Petr Vorel <pvorel@suse.cz>
+Reviewed-by: Sami Kerola <kerolasa@iki.fi>
+
+---
+Patch has been adjusted to be applicable to RHEL8 codebase
+
+Resolves: #2057570
+---
+ ping.c         | 11 +++++++++++
+ ping6_common.c | 15 +++------------
+ 2 files changed, 14 insertions(+), 12 deletions(-)
+
+diff --git a/ping.c b/ping.c
+index d9a3f5d..c870390 100644
+--- a/ping.c
++++ b/ping.c
+@@ -949,6 +949,17 @@ int ping4_receive_error_msg(socket_st *sock)
+ 
+ 		acknowledge(ntohs(icmph.un.echo.sequence));
+ 
++		if (sock->socktype == SOCK_RAW)
++		{
++			struct icmp_filter filt;
++
++			filt.data = ~((1 << ICMP_SOURCE_QUENCH) |
++						  (1 << ICMP_REDIRECT) |
++						  (1 << ICMP_ECHOREPLY));
++			if (setsockopt(sock->fd, SOL_RAW, ICMP_FILTER, (const void *)&filt,
++						   sizeof(filt)) == -1)
++				error(2, errno, "setsockopt(ICMP_FILTER)");
++		}
+ 		net_errors++;
+ 		nerrors++;
+ 		if (options & F_QUIET)
+diff --git a/ping6_common.c b/ping6_common.c
+index 5991c2a..1181341 100644
+--- a/ping6_common.c
++++ b/ping6_common.c
+@@ -879,6 +879,8 @@ int ping6_run(int argc, char **argv, struct addrinfo *ai, struct socket_st *sock
+ 	}
+ 
+ 	hold = 1;
++	if (setsockopt(sock->fd, IPPROTO_IPV6, IPV6_RECVERR, (const void *)&hold, sizeof hold))
++		error(2, errno, "IPV6_RECVERR");
+ 
+ 	/* Estimate memory eaten by single packet. It is rough estimate.
+ 	 * Actually, for small datalen's it depends on kernel side a lot. */
+@@ -906,11 +908,6 @@ int ping6_run(int argc, char **argv, struct addrinfo *ai, struct socket_st *sock
+ 
+ 		ICMP6_FILTER_SETBLOCKALL(&filter);
+ 
+-		ICMP6_FILTER_SETPASS(ICMP6_DST_UNREACH, &filter);
+-		ICMP6_FILTER_SETPASS(ICMP6_PACKET_TOO_BIG, &filter);
+-		ICMP6_FILTER_SETPASS(ICMP6_TIME_EXCEEDED, &filter);
+-		ICMP6_FILTER_SETPASS(ICMP6_PARAM_PROB, &filter);
+-
+ 		if (niquery_is_enabled())
+ 			ICMP6_FILTER_SETPASS(ICMPV6_NI_REPLY, &filter);
+ 		else
+@@ -1437,13 +1434,7 @@ ping6_parse_reply(socket_st *sock, struct msghdr *msg, int cc, void *addr, struc
+ 			    !is_ours(sock, icmph1->icmp6_id))
+ 				return 1;
+ 			acknowledge(ntohs(icmph1->icmp6_seq));
+-			nerrors++;
+-			if (options & F_FLOOD) {
+-				write_stdout("\bE", 2);
+-				return 0;
+-			}
+-			print_timestamp();
+-			printf("From %s: icmp_seq=%u ", pr_addr(from, sizeof *from), ntohs(icmph1->icmp6_seq));
++			return 0;
+ 		} else {
+ 			/* We've got something other than an ECHOREPLY */
+ 			if (!(options & F_VERBOSE) || uid)
+-- 
+2.35.1
+
