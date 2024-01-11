@@ -3,7 +3,7 @@
 Summary: Network monitoring tools including ping
 Name: iputils
 Version: 20180629
-Release: 10%{?dist}
+Release: 11%{?dist}
 # some parts are under the original BSD (ping.c)
 # some are under GPLv2+ (tracepath.c)
 License: BSD and GPLv2+
@@ -25,6 +25,9 @@ Patch3: 0003-fix-incorrect-statistics.patch
 Patch4: 0004-tracepath-fix-copying-input-ipv6-address.patch
 Patch5: 0005-ninfod-change-variable-name-to-avoid-colliding-with-function-name.patch
 Patch6: 0006-ping-Fix-unwanted-bell-on-unreachable-address.patch
+
+# bz2208409 - [RFE] support VRF with ping command
+Patch7: 0007-ping-allow-user-to-specify-VRF-and-source-IP.patch
 
 %if ! 0%{?_module_build}
 BuildRequires: docbook-utils perl-SGMLSpm
@@ -70,6 +73,7 @@ cp %{SOURCE4} %{SOURCE5} .
 %patch4 -p1
 %patch5 -p1
 %patch6 -p1
+%patch7 -p1
 
 %build
 %ifarch s390 s390x
@@ -173,6 +177,9 @@ install -m 644 %SOURCE3 ${RPM_BUILD_ROOT}/%{_unitdir}
 %endif
 
 %changelog
+* Thu Jun 08 2023 Jan Macku <jamacku@redhat.com> - 20180629-11
+- Add support for VRF with ping command (#2208409)
+
 * Tue Mar 22 2022 Jan Macku <jamacku@redhat.com> - 20180629-10
 - Fix regression of output when pinging unreachable IPv6 host (#2057570)
 

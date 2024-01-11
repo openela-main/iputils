@@ -1,0 +1,131 @@
+From 2cc34ea408602f84fe102598ca258126531736c9 Mon Sep 17 00:00:00 2001
+From: Jon Harrison <jon.harrison@metaswitch.com>
+Date: Tue, 9 Jul 2019 16:48:07 +0100
+Subject: [PATCH] ping: allow user to specify VRF and source IP
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Without this, the options for sending a ping in the context of a VRF are
+limited.
+
+We can send a ping with a specific source IP address.  For example:
+
+  ping 10.1.1.3 -I 10.1.1.2
+
+We can send a ping in the context of a Linux VRF.  For example:
+
+  ping 10.1.1.3 -I vrf_red
+
+However, when pinging in the context of a VRF, Linux does not always choose
+a sensible source IP address – the source IP might not belong to the VRF.
+As a result, the ping won’t get a response.  As a result, we want to be able
+to specify both a VRF and a source IP address when initiating a ping.  For
+example:
+
+  ping 10.1.1.3 -I vrf_red -I 10.1.1.2
+
+Ping reads in the command line parameters fine and sets up the 'source' and
+'device' variables, but currently ignores the device if the source IP
+address is non-zero.  This commit adds a branch to ping.c that does the
+socket bind to the device even in the case where the source IP is non-zero.
+This branch is based on the existing case where source IP is zero, but
+simplified a bit because we've already got a source IP address to use.
+
+(cherry picked from commit 9e08707d743b29e853df81bd7def1729e3afe55d)
+---
+ doc/ping.xml | 15 ++++++++++-----
+ ping.c       | 44 +++++++++++++++++++++++++++++++++++++++++---
+ 2 files changed, 51 insertions(+), 8 deletions(-)
+
+diff --git a/doc/ping.xml b/doc/ping.xml
+index bdf07b3..034e40c 100644
+--- a/doc/ping.xml
++++ b/doc/ping.xml
+@@ -158,11 +158,16 @@ to values less than 0.2 seconds.</para>
+   <varlistentry>
+   <term><option>-I </option><emphasis remap='I'>interface</emphasis></term>
+   <listitem>
+-<para><emphasis remap='I'>interface</emphasis> is either an address, or an interface name.
+-If <emphasis remap='I'>interface</emphasis> is an address, it sets source address
+-to specified interface address.
+-If <emphasis remap='I'>interface</emphasis> in an interface name, it sets
+-source interface to specified interface.
++<para><emphasis remap='I'>interface</emphasis> is either an
++address, an interface name or a VRF name. If
++<emphasis remap="I">interface</emphasis> is an address, it
++sets source address to specified interface address. If
++<emphasis remap="I">interface</emphasis> is an interface
++name, it sets source interface to specified interface.
++If <emphasis remap="I">interface</emphasis> is a VRF
++name, each packet is routed using the corresponding
++routing table; in this case, the <option>-I</option> option
++can be repeated to specify a source address.
+ NOTE: For IPv6, when doing ping to a link-local scope
+ address, link specification (by the '%'-notation in
+ <emphasis remap='I'>destination</emphasis>, or by this option)
+diff --git a/ping.c b/ping.c
+index c870390..0f87723 100644
+--- a/ping.c
++++ b/ping.c
+@@ -705,7 +705,43 @@ int ping4_run(int argc, char **argv, struct addrinfo *ai, socket_st *sock)
+ 		}
+ #endif
+ 		close(probe_fd);
+-	} while (0);
++
++	} else if (device) {
++		struct sockaddr_in dst = whereto;
++		struct ifreq ifr;
++		int fd = sock->fd;
++		int rc;
++		int errno_save;
++
++		memset(&ifr, 0, sizeof(ifr));
++		strncpy(ifr.ifr_name, device, IFNAMSIZ - 1);
++
++		enable_capability_raw();
++		rc = setsockopt(fd, SOL_SOCKET, SO_BINDTODEVICE, device, strlen(device) + 1);
++		errno_save = errno;
++		disable_capability_raw();
++
++		if (rc == -1) {
++			if (IN_MULTICAST(ntohl(dst.sin_addr.s_addr))) {
++				struct ip_mreqn imr;
++
++				if (ioctl(fd, SIOCGIFINDEX, &ifr) < 0) {
++					fprintf(stderr, "ping: %s: %s\n", "(\"unknown interface\")", device);
++					exit(2);
++				}
++				memset(&imr, 0, sizeof(imr));
++				imr.imr_ifindex = ifr.ifr_ifindex;
++				if (setsockopt(fd, SOL_IP, IP_MULTICAST_IF,
++					       &imr, sizeof(imr)) == -1) {
++					fprintf(stderr, "ping: IP_MULTICAST_IF: %s\n", strerror(errno));
++					exit(2);
++				}
++			} else {
++				fprintf(stderr, "ping: SO_BINDTODEVICE %s: %s\n", device, strerror(errno_save));
++				exit(2);
++			}
++		}
++	}
+ 
+ 	if (whereto.sin_addr.s_addr == 0)
+ 		whereto.sin_addr.s_addr = source.sin_addr.s_addr;
+@@ -957,8 +993,10 @@ int ping4_receive_error_msg(socket_st *sock)
+ 						  (1 << ICMP_REDIRECT) |
+ 						  (1 << ICMP_ECHOREPLY));
+ 			if (setsockopt(sock->fd, SOL_RAW, ICMP_FILTER, (const void *)&filt,
+-						   sizeof(filt)) == -1)
+-				error(2, errno, "setsockopt(ICMP_FILTER)");
++						   sizeof(filt)) == -1) {
++				fprintf(stderr, "ping: setsockopt(ICMP_FILTER): %s\n", strerror(errno));
++				exit(2);
++			}
+ 		}
+ 		net_errors++;
+ 		nerrors++;
+-- 
+2.40.1
+
