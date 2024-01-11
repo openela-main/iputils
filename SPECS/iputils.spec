@@ -3,7 +3,7 @@
 Summary: Network monitoring tools including ping
 Name: iputils
 Version: 20210202
-Release: 8%{?dist}.1
+Release: 9%{?dist}
 # some parts are under the original BSD (ping.c)
 # some are under GPLv2+ (tracepath.c)
 License: BSD and GPLv2+
@@ -18,6 +18,10 @@ Source3: ninfod.service
 Source4: bsd.txt
 Source5: https://www.gnu.org/licenses/old-licenses/gpl-2.0.txt
 
+# Upstream patches
+Patch001: 001-ping-remove-unsupported-IPv6-warning-on-disabled-IPv6.patch
+
+# Downstream-only patches
 Patch100: 100-iputils-ifenslave.patch
 Patch101: 101-iputils-ifenslave-CWE-170.patch
 Patch102: 102-iputils-ifenslave-CWE-170-2.patch
@@ -55,10 +59,7 @@ Queries.
 %prep
 %setup -q -a 1 -n %{name}-%{version}
 cp %{SOURCE4} %{SOURCE5} .
-
-%patch100 -p1
-%patch101 -p1
-%patch102 -p1
+%autopatch -p1
 
 %build
 %meson -DBUILD_TFTPD=false
@@ -129,8 +130,8 @@ install -cp ifenslave.8 ${RPM_BUILD_ROOT}%{_mandir}/man8/
 %attr(644,root,root) %{_mandir}/man8/ninfod.8.gz
 
 %changelog
-* Fri Nov 25 2022 Jan Macku <jamacku@redhat.com> - 20210202-8.1
-- Release bump (rhbz#2147538)
+* Wed May 03 2023 Jan Macku <jamacku@redhat.com> - 20210202-9
+- ping: Remove 'unsupported IPv6' warning on disabled IPv6 (rhbz#2152511)
 
 * Fri Nov 25 2022 Jan Macku <jamacku@redhat.com> - 20210202-8
 - Build iputils and ifenslave with correct flags (rhbz#2144509)
