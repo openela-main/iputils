@@ -3,7 +3,7 @@
 Summary: Network monitoring tools including ping
 Name: iputils
 Version: 20210202
-Release: 9%{?dist}
+Release: 10%{?dist}
 # some parts are under the original BSD (ping.c)
 # some are under GPLv2+ (tracepath.c)
 License: BSD and GPLv2+
@@ -20,6 +20,8 @@ Source5: https://www.gnu.org/licenses/old-licenses/gpl-2.0.txt
 
 # Upstream patches
 Patch001: 001-ping-remove-unsupported-IPv6-warning-on-disabled-IPv6.patch
+Patch002: 002-ping-Fix-ping6-binding-to-VRF-and-address.patch
+Patch003: 003-ping6-Avoid-binding-to-non-VRF.patch
 
 # Downstream-only patches
 Patch100: 100-iputils-ifenslave.patch
@@ -130,6 +132,9 @@ install -cp ifenslave.8 ${RPM_BUILD_ROOT}%{_mandir}/man8/
 %attr(644,root,root) %{_mandir}/man8/ninfod.8.gz
 
 %changelog
+* Tue Oct 22 2024 Jan Macku <jamacku@redhat.com> - 20210202-10
+- ping: Fix ping6 binding to VRF and address (RHEL-63060)
+
 * Wed May 03 2023 Jan Macku <jamacku@redhat.com> - 20210202-9
 - ping: Remove 'unsupported IPv6' warning on disabled IPv6 (rhbz#2152511)
 
