@@ -1,0 +1,36 @@
+From 1c66917a079e95f00e9a1f2af1329c65501e8a60 Mon Sep 17 00:00:00 2001
+From: Petr Vorel <pvorel@suse.cz>
+Date: Mon, 18 Oct 2021 15:27:35 +0200
+Subject: [PATCH 1/4] ping: Move ping_rts->multicast
+
+as it's used for both IPv4 and IPv6.
+
+Signed-off-by: Petr Vorel <pvorel@suse.cz>
+(cherry picked from commit 7a4ec7532871772cb22a3b2c42f6006f95f8b263)
+---
+ ping/ping.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/ping/ping.h b/ping/ping.h
+index 703296d..a5f05f4 100644
+--- a/ping/ping.h
++++ b/ping/ping.h
+@@ -192,6 +192,7 @@ struct ping_rts {
+ 	struct sockaddr_in6 source6;
+ 	struct sockaddr_in6 whereto6;
+ 	struct sockaddr_in6 firsthop6;
++	int multicast;
+ 
+ 	/* Used only in ping.c */
+ 	int ts_type;
+@@ -201,7 +202,6 @@ struct ping_rts {
+ 	int optlen;
+ 	int settos;			/* Set TOS, Precedence or other QOS options */
+ 	int broadcast_pings;
+-	int multicast;
+ 	struct sockaddr_in source;
+ 
+ 	/* Used only in ping_common.c */
+-- 
+2.46.0
+

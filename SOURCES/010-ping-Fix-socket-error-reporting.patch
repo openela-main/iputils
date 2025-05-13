@@ -1,0 +1,51 @@
+From 42ff1833920e2524b07790243ef9146125f5b2c4 Mon Sep 17 00:00:00 2001
+From: Petr Vorel <pvorel@suse.cz>
+Date: Wed, 10 Aug 2022 21:05:22 +0200
+Subject: [PATCH] ping: Fix socket error reporting
+
+There is actually no need for errno EAFNOSUPPORT special handling,
+nor for any other errno. *All* errors needs to be reported on verbose
+mode or when socket is required. If AF_INET6 socket is used with
+disabled IPv6, error reporting is done by gai_strerror() (ipv6.disable=1)
+or by connect() error handling in ping6_run() (EADDRNOTAVAIL on
+net.ipv6.conf.all.disable_ipv6=1).
+
+Bug was hidden because condition "errno == EAFNOSUPPORT && socktype ==
+AF_INET6" introduced in d141cb6 was always false as AF_INET6 is is an address
+family not a socket type, until otherwise correct fix 904cdb6. Attempt
+to fix it in 79d713e introduced regression that other errors weren't
+reported (e.g. EPERM on RAW socket on non-root, see #406).
+
+Closes: https://github.com/iputils/iputils/pull/418
+Fixes: https://github.com/iputils/iputils/issues/406
+Fixes: 79d713e ("ping: Remove 'unsupported IPv6' warning on disabled IPv6")
+Fixes: d141cb6 ("ping: work with older kernels that don't support ping sockets")
+
+Reported-by: Benjamin Poirier <benjamin.poirier@gmail.com>
+Tested-by: Benjamin Poirier <benjamin.poirier@gmail.com>
+Signed-off-by: Petr Vorel <pvorel@suse.cz>
+(cherry picked from commit bbe451f91ecc769ac5f70c1269372a6cc28d6814)
+---
+ ping/ping.c | 6 +-----
+ 1 file changed, 1 insertion(+), 5 deletions(-)
+
+diff --git a/ping/ping.c b/ping/ping.c
+index 81ee7c8..ff7e742 100644
+--- a/ping/ping.c
++++ b/ping/ping.c
+@@ -147,11 +147,7 @@ static void create_socket(struct ping_rts *rts, socket_st *sock, int family,
+ 	}
+ 
+ 	if (sock->fd == -1) {
+-		/* Report error related to disabled IPv6 only when IPv6 also failed or in
+-		 * verbose mode. Report other errors always.
+-		 */
+-		if ((errno == EAFNOSUPPORT && family == AF_INET6 && requisite) ||
+-		    rts->opt_verbose)
++		if (requisite || rts->opt_verbose)
+ 			error(0, errno, "socket");
+ 		if (requisite)
+ 			exit(2);
+-- 
+2.46.0
+

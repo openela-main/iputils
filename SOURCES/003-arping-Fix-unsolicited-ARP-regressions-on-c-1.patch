@@ -1,0 +1,61 @@
+From 5564dd9f224a7354a55c8f57ac0da9c2e58b18e5 Mon Sep 17 00:00:00 2001
+From: Petr Vorel <pvorel@suse.cz>
+Date: Fri, 24 May 2024 00:05:53 +0200
+Subject: [PATCH 2/2] arping: Fix unsolicited ARP regressions on -c > 1
+
+4db1de6 tried to fix a regression 1 sec delay due poll() for unsolicited
+ARP, .i.e. -A and -U (introduced in 67e070d, reported as issue #536).
+But skipping the while loop entirely introduced another regression for
+-A and -U, which behave like -c1 (sending *always* only a single packet).
+
+Fixing it by checking in while loop and comparing also count (as it was
+done in 67e070d before the rewrite).
+
+NOTE: use exit_loop with continue instead of simple break to keep things
+consistent.
+
+Fixes: 4db1de6 ("arping: Fix 1s delay on exit for unsolicited arpings")
+Fixes: 67e070d ("arping: use signalfd() and timerfd() rather than signals")
+Fixes: https://github.com/iputils/iputils/issues/536
+Closes: https://github.com/iputils/iputils/pull/543
+Reported-by: David Bond <dbond@suse.com>
+Reviewed-by: Andrea Cervesato <andrea.cervesato@suse.com>
+Reviewed-by: Cyril Hrubis <chrubis@suse.cz>
+Signed-off-by: Petr Vorel <pvorel@suse.cz>
+(cherry picked from commit 5de892d15eea467775420c4fd641df229f024259)
+---
+ arping.c | 8 +++++++-
+ 1 file changed, 7 insertions(+), 1 deletion(-)
+
+diff --git a/arping.c b/arping.c
+index 8929f8f..ee9da1d 100644
+--- a/arping.c
++++ b/arping.c
+@@ -749,10 +749,15 @@ static int event_loop(struct run_state *ctl)
+ 	pfds[POLLFD_SOCKET].events = POLLIN | POLLERR | POLLHUP;
+ 	send_pack(ctl);
+ 
+-	while (!(exit_loop || ctl->unsolicited)) {
++	while (!exit_loop) {
+ 		int ret;
+ 		size_t i;
+ 
++		if ((ctl->sent == ctl->count) && ctl->unsolicited) {
++			exit_loop = 1;
++			continue;
++		}
++
+ 		ret = poll(pfds, POLLFD_COUNT, -1);
+ 		if (ret <= 0) {
+ 			if (errno == EAGAIN)
+@@ -813,6 +818,7 @@ static int event_loop(struct run_state *ctl)
+ 			}
+ 		}
+ 	}
++
+ 	close(sfd);
+ 	close(tfd);
+ 	freeifaddrs(ctl->ifa0);
+-- 
+2.46.0
+

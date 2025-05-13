@@ -3,7 +3,7 @@
 Summary: Network monitoring tools including ping
 Name: iputils
 Version: 20210202
-Release: 10%{?dist}
+Release: 11%{?dist}
 # some parts are under the original BSD (ping.c)
 # some are under GPLv2+ (tracepath.c)
 License: BSD and GPLv2+
@@ -20,8 +20,17 @@ Source5: https://www.gnu.org/licenses/old-licenses/gpl-2.0.txt
 
 # Upstream patches
 Patch001: 001-ping-remove-unsupported-IPv6-warning-on-disabled-IPv6.patch
-Patch002: 002-ping-Fix-ping6-binding-to-VRF-and-address.patch
-Patch003: 003-ping6-Avoid-binding-to-non-VRF.patch
+Patch002: 002-arping-Fix-1s-delay-on-exit-for-unsolicited-arpings.patch
+Patch003: 003-arping-Fix-unsolicited-ARP-regressions-on-c-1.patch
+Patch004: 004-arping-fix-typo-in-error-checking.patch
+Patch005: 005-arping-exit-0-if-running-in-deadline-mode-and-we-see.patch
+Patch006: 006-Revert-Add-strict-pattern-matching-on-response-when-.patch
+Patch007: 007-ping-Move-ping_rts-multicast.patch
+Patch008: 008-ping-Print-reply-from-Subnet-Router-anycast-address.patch
+Patch009: 009-ping-Print-reply-with-wrong-source-with-warning.patch
+Patch010: 010-ping-Fix-socket-error-reporting.patch
+Patch011: 011-ping-Fix-ping6-binding-to-VRF-and-address.patch
+Patch012: 012-ping6-Avoid-binding-to-non-VRF.patch
 
 # Downstream-only patches
 Patch100: 100-iputils-ifenslave.patch
@@ -132,8 +141,14 @@ install -cp ifenslave.8 ${RPM_BUILD_ROOT}%{_mandir}/man8/
 %attr(644,root,root) %{_mandir}/man8/ninfod.8.gz
 
 %changelog
-* Tue Oct 22 2024 Jan Macku <jamacku@redhat.com> - 20210202-10
-- ping: Fix ping6 binding to VRF and address (RHEL-63060)
+* Fri Sep 06 2024 Jan Macku <jamacku@redhat.com> - 20210202-11
+- ping: Fix ping6 binding to VRF and address (RHEL-57734)
+
+* Wed Aug 28 2024 Jan Macku <jamacku@redhat.com> - 20210202-10
+- arping: Fix 1s delay on exit for unsolicited arpings (RHEL-34110)
+- arping: exit 0 if running in deadline mode and we see replies (RHEL-27718)
+- ping: Print reply with wrong source with warning & some follow-up fixes (RHEL-12789, RHEL-13480)
+- ping: Fix socket error reporting (RHEL-4608)
 
 * Wed May 03 2023 Jan Macku <jamacku@redhat.com> - 20210202-9
 - ping: Remove 'unsupported IPv6' warning on disabled IPv6 (rhbz#2152511)
