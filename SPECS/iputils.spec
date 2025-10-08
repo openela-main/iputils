@@ -3,7 +3,7 @@
 Summary: Network monitoring tools including ping
 Name: iputils
 Version: 20210202
-Release: 11%{?dist}.1
+Release: 11%{?dist}.3
 # some parts are under the original BSD (ping.c)
 # some are under GPLv2+ (tracepath.c)
 License: BSD and GPLv2+
@@ -32,6 +32,7 @@ Patch010: 010-ping-Fix-socket-error-reporting.patch
 Patch011: 011-ping-Fix-ping6-binding-to-VRF-and-address.patch
 Patch012: 012-ping6-Avoid-binding-to-non-VRF.patch
 Patch013: 013-ping-Fix-signed-64-bit-integer-overflow-in-RTT-calcu.patch
+Patch014: 014-ping-Fix-moving-average-rtt-calculation.patch
 
 # Downstream-only patches
 Patch100: 100-iputils-ifenslave.patch
@@ -142,6 +143,12 @@ install -cp ifenslave.8 ${RPM_BUILD_ROOT}%{_mandir}/man8/
 %attr(644,root,root) %{_mandir}/man8/ninfod.8.gz
 
 %changelog
+* Fri Sep 19 2025 Jan Macku <jamacku@redhat.com> - 20210202-11.3
+- Bump release
+
+* Fri Sep 12 2025 Jan Macku <jamacku@redhat.com> - 20210202-11.2
+- Fix CVE-2025-48964 iputils: iputils integer overflow (RHEL-112001)
+
 * Thu Jun 05 2025 Jan Macku <jamacku@redhat.com> - 20210202-11.1
 - Fix CVE-2025-47268 iputils: Signed Integer Overflow in Timestamp Multiplication in iputils ping (RHEL-94335)
 
