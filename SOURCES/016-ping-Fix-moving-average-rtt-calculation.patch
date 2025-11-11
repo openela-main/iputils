@@ -1,4 +1,4 @@
-From 339a45dd8a2dc6b17f4c1dda97b84c4af1a5bbad Mon Sep 17 00:00:00 2001
+From 0cf586cb9e60ace9b25bef4e862edc0f98925849 Mon Sep 17 00:00:00 2001
 From: Cyril Hrubis <metan@ucw.cz>
 Date: Fri, 16 May 2025 17:57:10 +0200
 Subject: [PATCH] ping: Fix moving average rtt calculation

@@ -3,7 +3,7 @@
 Summary: Network monitoring tools including ping
 Name: iputils
 Version: 20210202
-Release: 11%{?dist}.3
+Release: 15%{?dist}
 # some parts are under the original BSD (ping.c)
 # some are under GPLv2+ (tracepath.c)
 License: BSD and GPLv2+
@@ -32,7 +32,9 @@ Patch010: 010-ping-Fix-socket-error-reporting.patch
 Patch011: 011-ping-Fix-ping6-binding-to-VRF-and-address.patch
 Patch012: 012-ping6-Avoid-binding-to-non-VRF.patch
 Patch013: 013-ping-Fix-signed-64-bit-integer-overflow-in-RTT-calcu.patch
-Patch014: 014-ping-Fix-moving-average-rtt-calculation.patch
+Patch014: 014-ping-Make-ping_rts-struct-static.patch
+Patch015: 015-arping-Fix-exit-code-if-receive-more-replies-than-se.patch
+Patch016: 016-ping-Fix-moving-average-rtt-calculation.patch
 
 # Downstream-only patches
 Patch100: 100-iputils-ifenslave.patch
@@ -143,14 +145,17 @@ install -cp ifenslave.8 ${RPM_BUILD_ROOT}%{_mandir}/man8/
 %attr(644,root,root) %{_mandir}/man8/ninfod.8.gz
 
 %changelog
-* Fri Sep 19 2025 Jan Macku <jamacku@redhat.com> - 20210202-11.3
-- Bump release
+* Fri Sep 12 2025 Jan Macku <jamacku@redhat.com> - 20210202-15
+- Fix CVE-2025-48964 iputils: iputils integer overflow (RHEL-112000)
 
-* Fri Sep 12 2025 Jan Macku <jamacku@redhat.com> - 20210202-11.2
-- Fix CVE-2025-48964 iputils: iputils integer overflow (RHEL-112001)
+* Fri Jun 20 2025 Jan Macku <jamacku@redhat.com> - 20210202-14
+- arping: Fix exit code if receive more replies than sent (RHEL-98281)
 
-* Thu Jun 05 2025 Jan Macku <jamacku@redhat.com> - 20210202-11.1
-- Fix CVE-2025-47268 iputils: Signed Integer Overflow in Timestamp Multiplication in iputils ping (RHEL-94335)
+* Thu Jun 19 2025 Jan Macku <jamacku@redhat.com> - 20210202-13
+- Fix ping hangs under ASan on aarch64 (RHEL-96871)
+
+* Tue Jun 03 2025 Jan Macku <jamacku@redhat.com> - 20210202-12
+- Fix CVE-2025-47268 iputils: Signed Integer Overflow in Timestamp Multiplication in iputils ping (RHEL-94334)
 
 * Fri Sep 06 2024 Jan Macku <jamacku@redhat.com> - 20210202-11
 - ping: Fix ping6 binding to VRF and address (RHEL-57734)
