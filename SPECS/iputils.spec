@@ -3,7 +3,7 @@
 Summary: Network monitoring tools including ping
 Name: iputils
 Version: 20240905
-Release: 2%{?dist}.1
+Release: 4%{?dist}
 # some parts are under the original BSD (ping.c)
 # some are under GPLv2+ (tracepath.c)
 License: BSD-4-Clause-UC AND GPL-2.0-or-later
@@ -27,7 +27,6 @@ BuildRequires: meson
 BuildRequires: gettext
 BuildRequires: glibc-kernheaders >= 2.4-8.19
 BuildRequires: libidn2-devel
-BuildRequires: openssl-devel
 BuildRequires: libcap-devel
 BuildRequires: libxslt docbook5-style-xsl
 BuildRequires: systemd
@@ -89,8 +88,11 @@ install -cp ifenslave.8 ${RPM_BUILD_ROOT}%{_mandir}/man8/
 %attr(644,root,root) %{_mandir}/man8/ifenslave.8*
 
 %changelog
-* Tue Jun 03 2025 Jan Macku <jamacku@redhat.com> - 20240905-2.1
-- Fix CVE-2025-47268 iputils: Signed Integer Overflow in Timestamp Multiplication in iputils ping (RHEL-94583)
+* Mon Jul 28 2025 Jan Macku <jamacku@redhat.com> - 20240905-4
+- remove build dependency on openssl-devel removed in s20200821 (RHEL-103645)
+
+* Tue Jun 03 2025 Jan Macku <jamacku@redhat.com> - 20240905-3
+- Fix CVE-2025-47268 iputils: Signed Integer Overflow in Timestamp Multiplication in iputils ping (RHEL-94582)
 
 * Tue Oct 29 2024 Troy Dawson <tdawson@redhat.com> - 20240905-2
 - Bump release for October 2024 mass rebuild:
