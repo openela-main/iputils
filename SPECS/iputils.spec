@@ -3,7 +3,7 @@
 Summary: Network monitoring tools including ping
 Name: iputils
 Version: 20240905
-Release: 4%{?dist}
+Release: 5%{?dist}
 # some parts are under the original BSD (ping.c)
 # some are under GPLv2+ (tracepath.c)
 License: BSD-4-Clause-UC AND GPL-2.0-or-later
@@ -17,6 +17,7 @@ Source5: https://www.gnu.org/licenses/old-licenses/gpl-2.0.txt
 
 # Fix CVE-2025-47268
 Patch001: 001-ping-Fix-signed-64-bit-integer-overflow-in-RTT-calcu.patch
+Patch002: 002-ping-Fix-moving-average-rtt-calculation.patch
 
 Patch100: 100-iputils-ifenslave.patch
 Patch101: 101-iputils-ifenslave-CWE-170.patch
@@ -88,6 +89,9 @@ install -cp ifenslave.8 ${RPM_BUILD_ROOT}%{_mandir}/man8/
 %attr(644,root,root) %{_mandir}/man8/ifenslave.8*
 
 %changelog
+* Mon Oct 13 2025 Jan Macku <jamacku@redhat.com> - 20240905-5
+- Fix CVE-2025-48964 iputils: iputils integer overflow (RHEL-115832)
+
 * Mon Jul 28 2025 Jan Macku <jamacku@redhat.com> - 20240905-4
 - remove build dependency on openssl-devel removed in s20200821 (RHEL-103645)
 
